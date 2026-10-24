@@ -1,0 +1,9 @@
+{
+    "name": "alaydriem-mod-manager",
+    "author": "Alaydriem",
+    "entry": "${modFile}",
+    "version": "${modVersion}",
+    "type": "native",
+    "platform": "client",
+    "clientSide": true
+}

@@ -1,0 +1,148 @@
+[tasks.preflight]
+description = "Names a missing Rust toolchain, cargo-nextest, cbindgen, xmake or sibling levi-crates checkout before a build turns it into an obscure error"
+dir = "{{config_root}}"
+run = [
+  '''pwsh -NoProfile -Command "if (-not (Test-Path '../levi-crates/Cargo.toml')) { Write-Error 'levi-crates not found at ../levi-crates (path dependencies need it next to levi-modmanager)'; exit 1 }"''',
+  "rustc --version",
+  "cargo --version",
+  "cargo nextest --version",
+  "cbindgen --version",
+  "xmake --version",
+]
+
+[tasks.check]
+description = "cargo check, clippy with warnings denied (workspace, and amm-client without egui), and rustfmt check of the workspace members"
+dir = "{{config_root}}"
+# fmt names each member: --all would also format the levi-crates path dependencies
+run = [
+  "cargo check --workspace --all-targets",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo check -p amm-client --no-default-features --features test-support",
+  "cargo clippy -p amm-client --no-default-features --features test-support -- -D warnings",
+  "cargo fmt --check -p amm-core -p amm-abi -p amm-store -p amm-ui -p amm-client -p amm-ffi -p amm-bench -p amm-e2e -p demo-ffi",
+]
+
+[tasks.test]
+description = "Every workspace test through cargo-nextest"
+dir = "{{config_root}}"
+run = "cargo nextest run --workspace --no-tests=pass"
+
+[tasks.header]
+description = "Regenerates include/alaydriem_mod_manager.h from amm-abi and include/amm_host.h from amm-ffi"
+dir = "{{config_root}}"
+run = [
+  "cbindgen --config crates/amm-abi/cbindgen.toml --crate amm-abi --output include/alaydriem_mod_manager.h crates/amm-abi",
+  "cbindgen --config crates/amm-ffi/cbindgen.toml --crate amm-ffi --output include/amm_host.h crates/amm-ffi",
+]
+
+[tasks.header-check]
+description = "Fails when include/alaydriem_mod_manager.h or include/amm_host.h is out of date with its crate"
+dir = "{{config_root}}"
+run = [
+  "cbindgen --verify --config crates/amm-abi/cbindgen.toml --crate amm-abi --output include/alaydriem_mod_manager.h crates/amm-abi",
+  "cbindgen --verify --config crates/amm-ffi/cbindgen.toml --crate amm-ffi --output include/amm_host.h crates/amm-ffi",
+]
+
+[tasks.build-ffi]
+description = "Builds the amm_ffi static library in release mode"
+dir = "{{config_root}}"
+run = "cargo build --release -p amm-ffi"
+
+[tasks.build-mod]
+description = "Builds the LeviLamina mod into shim/bin/alaydriem-mod-manager"
+depends = ["build-ffi", "header"]
+dir = "{{config_root}}/shim"
+# -r: levibuildscript 0.6.2 deletes its prelink library after each link but skips the prelink when only
+# the Rust static library changed, so an incremental relink fails with LNK1181 bedrock_runtime_api.lib
+run = ["xmake f -p windows -a x64 -m release -y", "xmake -r -y"]
+
+[tasks.install-mod]
+description = "Copies the built mod into the game mods folder named by LM_MODS_DIR (set it in mise.local.toml)"
+depends = ["build-mod"]
+dir = "{{config_root}}"
+shell = "bash -c"
+# LeviLamina finds a mod's folder from the manifest name, so the folder carries that name
+run = 'mkdir -p "${LM_MODS_DIR:?set LM_MODS_DIR in mise.local.toml}/alaydriem-mod-manager" && cp -r shim/bin/alaydriem-mod-manager/. "$LM_MODS_DIR/alaydriem-mod-manager/"'
+
+[tasks.demo-header]
+description = "Regenerates examples/demo-mod/shim/include/demo_ffi.h from the demo-ffi crate"
+dir = "{{config_root}}"
+run = "cbindgen --config examples/demo-mod/ffi/cbindgen.toml --crate demo-ffi --output examples/demo-mod/shim/include/demo_ffi.h examples/demo-mod/ffi"
+
+[tasks.build-demo]
+description = "Builds the demo mod into examples/demo-mod/shim/bin/alaydriem-demo"
+depends = ["build-demo-ffi", "demo-header"]
+dir = "{{config_root}}/examples/demo-mod/shim"
+# -r: same prelink limitation as build-mod
+run = ["xmake f -p windows -a x64 -m release -y", "xmake -r -y"]
+
+[tasks.build-demo-ffi]
+description = "Builds the demo_ffi static library in release mode"
+dir = "{{config_root}}"
+run = "cargo build --release -p demo-ffi"
+
+[tasks.install-demo]
+description = "Copies the built demo mod into the game mods folder named by LM_MODS_DIR (set it in mise.local.toml)"
+depends = ["build-demo"]
+dir = "{{config_root}}"
+shell = "bash -c"
+run = 'mkdir -p "${LM_MODS_DIR:?set LM_MODS_DIR in mise.local.toml}/alaydriem-demo" && cp -r examples/demo-mod/shim/bin/alaydriem-demo/. "$LM_MODS_DIR/alaydriem-demo/"'
+
+[tasks.e2e]
+description = "End-to-end scenarios in amm-e2e"
+dir = "{{config_root}}"
+run = "cargo nextest run -p amm-e2e --no-tests=pass"
+
+[tasks.bench]
+description = "Criterion benches in amm-bench; arguments narrow the run"
+dir = "{{config_root}}"
+run = "cargo bench -p amm-bench --"
+
+[tasks.panel-shots]
+description = "Writes the manager panel screenshots into docs/findings/amm-ui"
+dir = "{{config_root}}"
+run = "cargo run --release -p amm-ui --example panel_shots -- docs/findings/amm-ui"
+
+[tasks."panel-shots:pseudo"]
+description = "Writes the manager panel screenshots in the en_XA pseudo-locale into docs/findings/amm-ui/en_XA"
+dir = "{{config_root}}"
+run = "cargo run --release -p amm-ui --example panel_shots -- docs/findings/amm-ui/en_XA --locale en_XA"
+
+# Translation catalogs: each crate that shows text has crates/<crate>/i18n/ holding <domain>.pot
+# (written from its Message enum), the translators' <locale>.po files, and packs/<locale>.json.
+
+[tasks."i18n:extract"]
+description = "Writes each crate's i18n/<domain>.pot from its Message enum"
+dir = "{{config_root}}"
+run = [
+  "cargo run -q -p amm-ui --example amm_i18n_extract",
+]
+
+[tasks."i18n:check"]
+description = "Fails when a crate's .pot is out of date with its Message enum"
+dir = "{{config_root}}"
+run = [
+  "cargo run -q -p amm-ui --example amm_i18n_extract -- --check",
+]
+
+[tasks."i18n:build"]
+description = "Compiles each crate's i18n/<locale>.po into i18n/packs/<locale>.json; a locale under 90 % coverage is not shipped"
+dir = "{{config_root}}"
+shell = "bash -c"
+run = 'for dir in crates/*/i18n; do [ -d "$dir" ] || continue; cargo run -q --manifest-path ../levi-crates/Cargo.toml -p levi-i18n-tool -- build "$dir" "$dir/packs" || exit 1; done'
+
+[tasks."i18n:pseudo"]
+description = "Writes the en_XA pseudo-locale pack of each crate's .pot into i18n/packs/en_XA.json"
+dir = "{{config_root}}"
+shell = "bash -c"
+run = 'for pot in crates/*/i18n/*.pot; do [ -f "$pot" ] || continue; cargo run -q --manifest-path ../levi-crates/Cargo.toml -p levi-i18n-tool -- pseudo "$pot" "$(dirname "$pot")/packs/en_XA.json" || exit 1; done'
+
+[tasks."i18n:report"]
+description = "Prints the translation coverage of each crate's locales against its .pot"
+dir = "{{config_root}}"
+shell = "bash -c"
+run = 'for pot in crates/*/i18n/*.pot; do [ -f "$pot" ] || continue; echo "## $pot"; cargo run -q --manifest-path ../levi-crates/Cargo.toml -p levi-i18n-tool -- report "$pot" "$(dirname "$pot")" || exit 1; done'
+
+[tools]
+"cargo:cbindgen" = "0.29.2"
+"github:xmake-io/xmake" = "3.1.1"

@@ -1,0 +1,36 @@
+[package]
+name = "amm-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+[[example]]
+name = "panel_shots"
+path = "examples/panel_shots/main.rs"
+
+[[example]]
+# not "i18n_extract": levi-ui has an example of that name, and both would link target/*/examples/i18n_extract.exe
+name = "amm_i18n_extract"
+path = "examples/i18n_extract.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+levi-ui.workspace = true
+levi-i18n.workspace = true
+amm-core = { workspace = true, features = ["egui"] }
+egui.workspace = true
+hcl-rs.workspace = true
+
+[dev-dependencies]
+eframe.workspace = true
+image.workspace = true
+levi-i18n-tool.workspace = true
+levi-rules.workspace = true

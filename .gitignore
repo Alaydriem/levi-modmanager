@@ -1,0 +1,9 @@
+/target
+/mise.local.toml
+/shim/build
+/shim/.xmake
+/shim/bin
+/examples/demo-mod/shim/build
+/examples/demo-mod/shim/.xmake
+/examples/demo-mod/shim/bin
+/docs
