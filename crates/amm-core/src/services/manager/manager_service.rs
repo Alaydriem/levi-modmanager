@@ -381,7 +381,7 @@ impl ManagerService {
             pointer_owner: self.pointer_layer().map(|entry| entry.mod_index),
             keyboard_owner: self.keyboard_owner(),
             over_menu_button: self.panel.over_menu_button(),
-            over_game_viewport: self.viewports.at(self.panel.pointer(), &self.arbiter).is_some(),
+            over_game_viewport: self.game_viewport_at(self.panel.pointer()).is_some(),
             registry: &self.registry,
             arbiter: &self.arbiter,
             book: &self.config.resolutions,
@@ -401,9 +401,12 @@ impl ManagerService {
         self.viewports.set(index, viewport);
     }
 
-    /// The game viewport under `point` of the mod that holds `Overlay`.
+    /// The game viewport under `point` of the mod that holds `Overlay`, while that mod's layer is the one under
+    /// `point`: a layer of another mod drawn over the picture keeps the point from the game.
     pub fn game_viewport_at(&self, point: (f32, f32)) -> Option<GameViewport> {
-        self.viewports.at(point, &self.arbiter)
+        let (owner, viewport) = self.viewports.at(point, &self.arbiter)?;
+        let under = self.replies.pointer_layer(&self.snapshot.load().layers, point)?;
+        (under.mod_index == owner).then_some(viewport)
     }
 
     /// Enables or disables a mod and stores the choice in the manager config. Disabling releases

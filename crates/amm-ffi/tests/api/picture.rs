@@ -24,6 +24,7 @@ impl PictureRig {
     fn holder(host: &TestHost, id: &str) -> TestClient {
         let client = TestClient::register(host, &Descriptors::overlay(id), TestMesh::triangle());
         client.acquire(AmmCapability::Overlay);
+        client.reply_for_layer(1, (true, false, 0, [0.0, 0.0, 1920.0, 1080.0]));
         host.frame(0);
         client
     }
@@ -136,4 +137,18 @@ fn an_empty_viewport_is_invalid() {
     let client = PictureRig::holder(&host, "viewport-empty");
 
     assert_eq!(PictureRig::set_viewport(client.handle(), Some([10.0, 10.0, 10.0, 40.0])), AmmStatus::InvalidArgument);
+}
+
+#[test]
+fn a_layer_of_another_mod_over_the_viewport_keeps_that_point_from_the_game() {
+    let host = TestHost::new();
+    let holder = PictureRig::holder(&host, "viewport-under");
+    PictureRig::set_viewport(holder.handle(), Some([480.0, 270.0, 1440.0, 810.0]));
+    let cover = TestClient::register(&host, &Descriptors::overlay("viewport-cover"), TestMesh::triangle());
+    cover.acquire(AmmCapability::Overlay);
+    cover.reply_for_layer(1, (true, false, 0, [900.0, 500.0, 1000.0, 600.0]));
+    host.frame(1);
+
+    assert_eq!(PictureRig::game_point(950.0, 550.0), None);
+    assert_eq!(PictureRig::game_point(960.0, 400.0), Some((960.0, 260.0)));
 }

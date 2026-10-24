@@ -45,7 +45,7 @@ fn the_viewport_of_the_overlay_holder_is_found_under_the_pointer() {
     rig.hold_overlay();
     rig.viewports.set(rig.dejavu, Some(Rig::viewport()));
 
-    assert_eq!(rig.viewports.at((200.0, 200.0), &rig.arbiter), Some(Rig::viewport()));
+    assert_eq!(rig.viewports.at((200.0, 200.0), &rig.arbiter), Some((rig.dejavu, Rig::viewport())));
     assert_eq!(rig.viewports.at((600.0, 200.0), &rig.arbiter), None);
 }
 

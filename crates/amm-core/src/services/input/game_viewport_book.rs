@@ -21,12 +21,12 @@ impl GameViewportBook {
         }
     }
 
-    /// The viewport under `point` of a mod that holds `Overlay`.
-    pub fn at(&self, point: (f32, f32), arbiter: &LeaseArbiter) -> Option<GameViewport> {
+    /// The viewport under `point` of a mod that holds `Overlay`, with that mod.
+    pub fn at(&self, point: (f32, f32), arbiter: &LeaseArbiter) -> Option<(ModIndex, GameViewport)> {
         self.viewports.iter().enumerate().find_map(|(slot, viewport)| {
             let viewport = (*viewport)?;
             let index = ModIndex(u8::try_from(slot).ok()?);
-            (viewport.contains(point) && arbiter.holds(index, Capability::Overlay)).then_some(viewport)
+            (viewport.contains(point) && arbiter.holds(index, Capability::Overlay)).then_some((index, viewport))
         })
     }
 }
