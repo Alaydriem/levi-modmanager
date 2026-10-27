@@ -1,4 +1,5 @@
-use egui::Context;
+use amm_core::structs::frame::LayerKind;
+use egui::{Context, RawInput};
 
 use super::{FrameInputView, FrameReply};
 
@@ -8,6 +9,10 @@ pub trait FrameHandler {
     /// Paints one pass of the layer `input.layer()` into that layer's `ctx`. `input` is the routed input of
     /// this layer for this frame.
     fn frame(&mut self, ctx: &Context, input: &FrameInputView) -> FrameReply;
+
+    /// Changes the raw input of `layer` after the bridge built it from the host's events and before the egui pass
+    /// that calls `frame`. A mod adds or removes events here. The default changes nothing.
+    fn adjust_input(&mut self, _layer: LayerKind, _raw: &mut RawInput) {}
 
     /// The host lost every texture. The bridge has already reset egui's own textures of every layer; a mod that
     /// uploads its own textures sends them again on its next frame.

@@ -111,6 +111,8 @@ impl FrameCompositor {
         rt.manager_mut().set_menu_screen(MenuScreen::from_code(input.menu_screen));
         let snapshot = rt.manager().snapshot();
         let toast = rt.toast_visible(input.now_ms);
+        // from the replies of the last compose, so a covering layer that is gone no longer hides the row
+        rt.manager_mut().update_overlay_covers((input.width, input.height));
         let button = rt.manager().menu_button_visible();
         if !snapshot.panel_open {
             self.panel_logged = false;
@@ -134,6 +136,8 @@ impl FrameCompositor {
             }
         }
         self.end_runs(rt);
+        rt.manager_mut().update_overlay_covers((input.width, input.height));
+        let button = rt.manager().menu_button_visible();
         rt.clear_ui_events();
         let cursor = owner_cursor.unwrap_or(cursor);
         if snapshot.panel_open || toast || button {

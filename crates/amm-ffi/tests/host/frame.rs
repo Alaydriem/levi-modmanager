@@ -1,4 +1,4 @@
-use amm_abi::types::AmmCapability;
+use amm_abi::types::{AmmCapability, AmmCursorShape};
 
 use crate::support::{Descriptors, TestClient, TestHost, TestMesh};
 
@@ -218,6 +218,43 @@ fn menu_button_is_hidden_while_the_panel_is_open_and_when_disabled_in_config() {
     assert_eq!(open_rect, None);
     assert_eq!(disabled, 0);
     assert_eq!(disabled_rect, None);
+}
+
+#[test]
+fn menu_button_hides_under_a_full_window_overlay_and_stays_under_a_small_one() {
+    let host = TestHost::new();
+    let client = TestClient::register(&host, &Descriptors::overlay("library"), TestMesh::triangle());
+    client.acquire(AmmCapability::Overlay);
+    let (width, height) = (TestHost::WIDTH as f32, TestHost::HEIGHT as f32);
+
+    client.reply_for_layer(1, (false, false, AmmCursorShape::Default as u8, [0.0, 0.0, 300.0, height]));
+    host.frame_with(0, TestHost::PAUSE);
+    let rail = TestHost::menu_button_rect();
+    client.reply_for_layer(1, (false, false, AmmCursorShape::Default as u8, [0.0, 0.0, width, height]));
+    host.frame_with(1, TestHost::PAUSE);
+    host.frame_with(2, TestHost::PAUSE);
+    let covered = TestHost::menu_button_rect();
+
+    assert!(rail.is_some(), "a small overlay keeps the row");
+    assert_eq!(covered, None, "a full-window overlay hides the row");
+}
+
+#[test]
+fn menu_button_returns_after_a_full_window_overlay_is_released() {
+    let host = TestHost::new();
+    let client = TestClient::register(&host, &Descriptors::overlay("library"), TestMesh::triangle());
+    client.acquire(AmmCapability::Overlay);
+    let (width, height) = (TestHost::WIDTH as f32, TestHost::HEIGHT as f32);
+    client.reply_for_layer(1, (false, false, AmmCursorShape::Default as u8, [0.0, 0.0, width, height]));
+    host.frame_with(0, TestHost::PAUSE);
+    host.frame_with(1, TestHost::PAUSE);
+    assert_eq!(TestHost::menu_button_rect(), None);
+
+    client.release_raw(AmmCapability::Overlay as u8);
+    host.frame_with(2, TestHost::PAUSE);
+    host.frame_with(3, TestHost::PAUSE);
+
+    assert!(TestHost::menu_button_rect().is_some(), "the row is back once the overlay is gone");
 }
 
 #[test]

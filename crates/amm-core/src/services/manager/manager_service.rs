@@ -627,6 +627,13 @@ impl ManagerService {
         self.replies.record(index, kind, reply);
     }
 
+    /// Tells the manager whether a mod Overlay layer covers the whole window of `size` (width, height in physical
+    /// pixels), from the last replies. The corner row hides while one does. It does not allocate or publish.
+    pub fn update_overlay_covers(&mut self, size: (u32, u32)) {
+        let covers = self.replies.overlay_covers(&self.snapshot.load().layers, size);
+        self.panel.set_overlay_covers(covers);
+    }
+
     /// The drawn layer that owns the pointer now: the top-most layer under it whose last reply wants it.
     pub fn pointer_layer(&self) -> Option<LayerEntry> {
         self.replies.pointer_layer(&self.snapshot.load().layers, self.panel.pointer())

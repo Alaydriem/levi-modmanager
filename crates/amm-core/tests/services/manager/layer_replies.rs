@@ -54,3 +54,27 @@ fn retain_forgets_the_reply_of_a_layer_that_is_no_longer_drawn() {
     assert_eq!(replies.pointer_layer(&layers, (50.0, 50.0)), None);
     assert_eq!(replies.keyboard_owner(&layers), None);
 }
+
+fn reply_with_rect(layer_rect: [f32; 4]) -> FrameReplyData {
+    FrameReplyData { cursor: CursorShape::Default, wants_pointer: true, wants_keyboard: false, layer_rect }
+}
+
+#[test]
+fn an_overlay_layer_covers_the_screen_within_one_pixel_and_a_small_one_does_not() {
+    let mut replies = LayerReplies::new(4);
+    let layers = [hud(MOD), overlay(MOD)];
+    replies.record(MOD, LayerKind::Overlay, reply_with_rect([0.0, 0.0, 1919.5, 1080.0]));
+    let full = replies.overlay_covers(&layers, (1920, 1080));
+    replies.record(MOD, LayerKind::Overlay, reply_with_rect([0.0, 0.0, 300.0, 1080.0]));
+    let rail = replies.overlay_covers(&layers, (1920, 1080));
+
+    assert_eq!((full, rail), (true, false));
+}
+
+#[test]
+fn a_hud_layer_never_covers_the_screen() {
+    let mut replies = LayerReplies::new(4);
+    replies.record(MOD, LayerKind::Hud, reply_with_rect([0.0, 0.0, 1920.0, 1080.0]));
+
+    assert!(!replies.overlay_covers(&[hud(MOD)], (1920, 1080)));
+}

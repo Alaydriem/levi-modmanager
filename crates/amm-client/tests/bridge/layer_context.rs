@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use amm_abi::types::{AmmFrameInput, AmmStatus};
 use amm_client::bridge::{ClipboardBackend, EguiFrame};
 use amm_client::link::FrameHandler;
-use amm_core::structs::frame::FrameInputData;
+use amm_core::structs::frame::{FrameInputData, LayerKind};
 use levi_i18n::localize::Localizer;
 use levi_i18n::message::Message;
 use levi_i18n::service::{LocaleSetting, LocalizationService};
@@ -11,7 +11,8 @@ use levi_ui::LeviUiMessage;
 use levi_ui::text::LeviUiPacks;
 
 use crate::support::{
-    ClipboardPass, ClipboardProbeHandler, FakeTable, FocusAction, FocusProbeHandler, FocusTarget, LocaleProbeHandler,
+    ClickHookHandler, ClickStep, ClipboardPass, ClipboardProbeHandler, FakeTable, FocusAction, FocusProbeHandler,
+    FocusTarget, LocaleProbeHandler, RawInputProbeHandler,
 };
 
 // one overlay pass with no events
@@ -157,4 +158,32 @@ fn ctrl_v_pastes_into_the_focused_field_on_a_later_pass() {
     ClipboardPass::ctrl_v(&mut frame);
 
     assert!(ClipboardPass::run_until(&mut frame, || text.borrow().as_str() == "pasted"));
+}
+
+#[test]
+fn adjust_input_runs_before_the_pass() {
+    let (handler, step, seen) = ClickHookHandler::new();
+    let mut frame = EguiFrame::new(handler);
+    overlay_pass(&mut frame);
+    overlay_pass(&mut frame);
+
+    step.set(ClickStep::Press);
+    overlay_pass(&mut frame);
+    assert!(!seen.clicked.get());
+
+    step.set(ClickStep::Release);
+    overlay_pass(&mut frame);
+
+    assert!(seen.clicked.get());
+    assert_eq!(*seen.layer.borrow(), Some(LayerKind::Overlay));
+}
+
+#[test]
+fn default_adjust_input_changes_nothing() {
+    let (handler, seen) = RawInputProbeHandler::new();
+    let mut frame = EguiFrame::new(handler);
+
+    overlay_pass(&mut frame);
+
+    assert_eq!(*seen.borrow(), Some((0, egui::vec2(640.0, 480.0))));
 }

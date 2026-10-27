@@ -3,9 +3,20 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to build and attach assets to'
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 env:
   MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   release:
@@ -14,11 +25,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Check that every version matches the tag
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}".TrimStart('v')
+          $tag = $env:TAG.TrimStart('v')
           $tooth = (Get-Content tooth.json -Raw | ConvertFrom-Json).version
           $cargo = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
           $xmake = (Select-String -Path shim/xmake.lua -Pattern 'modVersion = "([^"]+)"').Matches[0].Groups[1].Value
@@ -65,6 +78,17 @@ jobs:
           Compress-Archive -Path $mod -DestinationPath "dist/$name.zip"
           Compress-Archive -Path symbols/alaydriem-mod-manager.pdb -DestinationPath "dist/$name-pdb.zip"
 
-      - uses: softprops/action-gh-release@v3
-        with:
-          files: dist/*.zip
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --clobber
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --generate-notes \
+              dist/*.zip
+          fi

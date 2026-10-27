@@ -68,6 +68,18 @@ impl LayerReplies {
         })
     }
 
+    /// True when the last reply of a drawn Overlay layer of `layers` spans the whole `window` (width, height in
+    /// physical pixels), within one pixel on each side. A small layer, such as a rail, does not.
+    pub fn overlay_covers(&self, layers: &[LayerEntry], (width, height): (u32, u32)) -> bool {
+        let (width, height) = (width as f32, height as f32);
+        layers.iter().filter(|entry| entry.kind == LayerKind::Overlay).any(|entry| {
+            self.reply(entry.mod_index, entry.kind).is_some_and(|reply| {
+                let [min_x, min_y, max_x, max_y] = reply.layer_rect;
+                min_x <= 1.0 && min_y <= 1.0 && max_x >= width - 1.0 && max_y >= height - 1.0
+            })
+        })
+    }
+
     /// The mod that last reported `wants_keyboard`, while one of its `layers` still does.
     pub fn keyboard_owner(&self, layers: &[LayerEntry]) -> Option<ModIndex> {
         let owner = self.keyboard_owner?;

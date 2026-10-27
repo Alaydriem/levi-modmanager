@@ -58,6 +58,7 @@ impl LayerContext {
         let mut raw = RawInput::default();
         self.builder.build(input.data(), &mut raw);
         self.paste(clipboard, &mut raw);
+        handler.adjust_input(self.layer, &mut raw);
         let mut reply = None;
         let mut output = self.ctx.run_pass(raw, |ctx| reply = Some(handler.frame(ctx, input)));
         let ppp = output.pixels_per_point;

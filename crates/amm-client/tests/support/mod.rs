@@ -1,3 +1,4 @@
+pub mod click_hook_handler;
 pub mod clipboard_hold;
 pub mod clipboard_pass;
 pub mod clipboard_probe_handler;
@@ -15,9 +16,11 @@ pub mod overlay_panicking_handler;
 pub mod panicking_handler;
 pub mod panicking_payload;
 pub mod payload_panicking_handler;
+pub mod raw_input_probe_handler;
 pub mod rect_handler;
 
 pub use amm_client::test_support::{FakeTable, LoggedCall};
+pub use click_hook_handler::{ClickHookHandler, ClickStep};
 pub use clipboard_hold::ClipboardHold;
 pub use clipboard_pass::ClipboardPass;
 pub use clipboard_probe_handler::ClipboardProbeHandler;
@@ -35,4 +38,5 @@ pub use overlay_panicking_handler::OverlayPanickingHandler;
 pub use panicking_handler::PanickingHandler;
 pub use panicking_payload::PanickingPayload;
 pub use payload_panicking_handler::PayloadPanickingHandler;
+pub use raw_input_probe_handler::RawInputProbeHandler;
 pub use rect_handler::RectHandler;
