@@ -11,7 +11,7 @@ end
 
 target("alaydriem-mod-manager")
     add_rules("@levibuildscript/linkrule")
-    add_rules("@levibuildscript/modpacker", {modName = "alaydriem-mod-manager", modVersion = "0.1.0"})
+    add_rules("@levibuildscript/modpacker", {modName = "alaydriem-mod-manager", modVersion = "1.0.0"})
     add_packages("levilamina")
     add_syslinks("d3d11", "d3d12", "dxgi", "d3dcompiler", "user32", "kernel32", "ntdll", "userenv", "ws2_32", "dbghelp", "bcrypt", "advapi32", "ole32", "shell32")
     add_defines("NOMINMAX", "UNICODE", "_AMD64_")
